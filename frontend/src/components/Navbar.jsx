@@ -1,5 +1,5 @@
 import { Bell, Search, User, LogOut } from 'lucide-react'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -7,6 +7,20 @@ const Navbar = () => {
   const { user, logout } = useContext(AuthContext)
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
+  const notificationRef = useRef(null)
+
+  useEffect(() => {
+    if (!showNotifications) return undefined
+
+    const handlePointerDown = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [showNotifications])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -50,7 +64,7 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="relative">
+            <div className="relative" ref={notificationRef}>
               <button
                 onClick={handleNotificationClick}
                 className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"

@@ -1,4 +1,11 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_ADMIN_EMAILS = {"manishsahani.edu@gmail.com"}
 
 
 class Settings(BaseSettings):
@@ -17,14 +24,32 @@ class Settings(BaseSettings):
     otp_expiry_minutes: int = 5
     otp_max_attempts: int = 3
     admin_emails: str = ""
+    google_client_id: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # Optional SMTP settings for OTP email delivery.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    allow_otp_response_fallback: bool = True
+
+    model_config = SettingsConfigDict(
+        env_file=(BACKEND_DIR / ".env", PROJECT_ROOT / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()
 
 
 def admin_email_set() -> set[str]:
-    if not settings.admin_emails:
-        return set()
-    return {item.strip().lower() for item in settings.admin_emails.split(",") if item.strip()}
+    configured = (
+        {item.strip().lower() for item in settings.admin_emails.split(",") if item.strip()}
+        if settings.admin_emails
+        else set()
+    )
+    return DEFAULT_ADMIN_EMAILS | configured

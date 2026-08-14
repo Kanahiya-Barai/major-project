@@ -5,7 +5,8 @@ const nameFromEmail = (email) => String(email || '').split('@', 1)[0] || 'User'
 
 export const authService = {
   async login(email, password) {
-    const { data: tokenData } = await api.post('/auth/login', { email, password })
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    const { data: tokenData } = await api.post('/auth/login', { email: normalizedEmail, password })
     const token = tokenData?.access_token
     if (!token) {
       throw new Error('Login succeeded but token was not returned by the server')
@@ -18,9 +19,9 @@ export const authService = {
     return {
       user: {
         id: String(me?.id),
-        name: nameFromEmail(me?.email || email),
-        email: me?.email || email,
-        role: me?.role || roleFromEmail(me?.email || email),
+        name: nameFromEmail(me?.email || normalizedEmail),
+        email: me?.email || normalizedEmail,
+        role: me?.role || roleFromEmail(me?.email || normalizedEmail),
         balance: me?.balance,
       },
       token,
@@ -28,7 +29,7 @@ export const authService = {
   },
 
   async register(userData) {
-    const email = userData?.email
+    const email = String(userData?.email || '').trim().toLowerCase()
     const password = userData?.password
     if (!email || !password) {
       throw new Error('Email and password are required')
@@ -36,6 +37,29 @@ export const authService = {
 
     await api.post('/auth/register', { email, password })
     return this.login(email, password)
+  },
+
+  async loginWithGoogle(credential) {
+    const { data: tokenData } = await api.post('/auth/google', { credential })
+    const token = tokenData?.access_token
+    if (!token) {
+      throw new Error('Google sign-in succeeded but token was not returned by the server')
+    }
+
+    const { data: me } = await api.get('/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    return {
+      user: {
+        id: String(me?.id),
+        name: nameFromEmail(me?.email),
+        email: me?.email,
+        role: me?.role || roleFromEmail(me?.email),
+        balance: me?.balance,
+      },
+      token,
+    }
   },
 
   async getProfile() {

@@ -47,3 +47,5 @@ ml_model/data/
 
 database/*.sqlite
 database/*.db
+
+.git.zip

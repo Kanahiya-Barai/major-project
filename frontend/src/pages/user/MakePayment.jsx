@@ -26,12 +26,18 @@ const MakePayment = () => {
     receiverName: '',
     receiverAccount: '',
     failedAttempts: 0,
+    transactionFrequency: 1,
+    deviceChange: false,
+    locationChange: false,
+    hourOfDay: new Date().getHours(),
   })
   const [loading, setLoading] = useState(false)
   const [otpValue, setOtpValue] = useState('')
   const [showOtpPrompt, setShowOtpPrompt] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpLoading, setOtpLoading] = useState(false)
 
   const activeDecision = paymentResult?.decision
   const decisionUi = useMemo(
@@ -40,7 +46,8 @@ const MakePayment = () => {
   )
 
   const handleChange = (field) => (event) => {
-    setFormData((current) => ({ ...current, [field]: event.target.value }))
+    const nextValue = event.target.type === 'checkbox' ? event.target.checked : event.target.value
+    setFormData((current) => ({ ...current, [field]: nextValue }))
   }
 
   const handlePayment = async (event) => {
@@ -49,6 +56,8 @@ const MakePayment = () => {
     setErrorMessage('')
     setPaymentResult(null)
     setShowOtpPrompt(false)
+    setOtpValue('')
+    setOtpSent(false)
 
     try {
       const result = await paymentService.createPayment({
@@ -56,6 +65,10 @@ const MakePayment = () => {
         receiverName: formData.receiverName,
         receiverAccount: formData.receiverAccount,
         failedAttempts: Number(formData.failedAttempts || 0),
+        transactionFrequency: Number(formData.transactionFrequency || 1),
+        deviceChange: Boolean(formData.deviceChange),
+        locationChange: Boolean(formData.locationChange),
+        hourOfDay: Number(formData.hourOfDay),
       })
 
       setPaymentResult(result)
@@ -70,11 +83,40 @@ const MakePayment = () => {
     }
   }
 
-  const handleOtpSubmit = (event) => {
+  const handleSendOtp = async () => {
+    if (!paymentResult?.transaction_id) return
+    setOtpLoading(true)
+    setErrorMessage('')
+    try {
+      const result = await paymentService.sendOtp({ transactionId: paymentResult.transaction_id })
+      setPaymentResult(result)
+      setOtpSent(true)
+    } catch (error) {
+      setErrorMessage(error?.detail || 'Unable to send OTP right now.')
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  const handleOtpSubmit = async (event) => {
     event.preventDefault()
-    window.alert(`OTP entered: ${otpValue || 'N/A'}`)
-    setShowOtpPrompt(false)
-    setOtpValue('')
+    if (!paymentResult?.transaction_id) return
+    setOtpLoading(true)
+    setErrorMessage('')
+    try {
+      const result = await paymentService.verifyOtp({
+        transactionId: paymentResult.transaction_id,
+        otpCode: otpValue,
+      })
+      setPaymentResult(result)
+      setShowOtpPrompt(false)
+      setOtpValue('')
+      setOtpSent(false)
+    } catch (error) {
+      setErrorMessage(error?.detail || 'Unable to verify OTP right now.')
+    } finally {
+      setOtpLoading(false)
+    }
   }
 
   return (
@@ -139,6 +181,50 @@ const MakePayment = () => {
                 max="10"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Frequency</label>
+              <input
+                type="number"
+                value={formData.transactionFrequency}
+                onChange={handleChange('transactionFrequency')}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                min="1"
+                max="100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hour of Day</label>
+              <input
+                type="number"
+                value={formData.hourOfDay}
+                onChange={handleChange('hourOfDay')}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                min="0"
+                max="23"
+              />
+            </div>
+
+            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={formData.deviceChange}
+                onChange={handleChange('deviceChange')}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              Device Change
+            </label>
+
+            <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={formData.locationChange}
+                onChange={handleChange('locationChange')}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              Location Change
+            </label>
           </div>
 
           <div className="border-t border-gray-200 pt-6">
@@ -201,6 +287,10 @@ const MakePayment = () => {
               <p className="text-sm mt-1">{paymentResult.message}</p>
               <p className="text-sm mt-1">Decision: {paymentResult.decision}</p>
               <p className="text-sm">Risk Score: {paymentResult.risk_score}</p>
+              <p className="text-sm">Risk Level: {paymentResult.risk_level}</p>
+              <p className="text-sm mt-2">
+                Features used: amount, transaction frequency, device change, location change, hour of day
+              </p>
             </div>
           </div>
         </div>
@@ -210,8 +300,22 @@ const MakePayment = () => {
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <p className="font-semibold text-amber-800">OTP verification required</p>
           <p className="text-sm text-amber-700 mt-1">
-            Backend requested OTP verification for this transaction.
+            Send OTP to your registered email, then enter it to complete the transaction.
           </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={handleSendOtp}
+              disabled={otpLoading}
+              className="rounded-xl bg-amber-500 px-4 py-3 font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+            >
+              {otpSent ? 'Resend OTP' : 'Send OTP'}
+            </button>
+            <p className="text-sm text-amber-800">
+              {otpSent ? 'OTP sent. Check your email.' : 'OTP not sent yet.'}
+            </p>
+          </div>
+
           <form onSubmit={handleOtpSubmit} className="mt-4 flex gap-3">
             <input
               type="text"
@@ -220,12 +324,14 @@ const MakePayment = () => {
               placeholder="Enter OTP"
               className="flex-1 rounded-xl border border-amber-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-300"
               maxLength={6}
+              disabled={!otpSent || otpLoading}
             />
             <button
               type="submit"
-              className="rounded-xl bg-amber-500 px-4 py-3 font-medium text-white hover:bg-amber-600"
+              disabled={!otpSent || otpLoading || otpValue.length !== 6}
+              className="rounded-xl bg-amber-500 px-4 py-3 font-medium text-white hover:bg-amber-600 disabled:opacity-50"
             >
-              Submit OTP
+              {otpLoading ? 'Verifying...' : 'Submit OTP'}
             </button>
           </form>
         </div>

@@ -5,6 +5,7 @@ import RiskCard from '../../components/RiskCard'
 import TransactionTable from '../../components/TransactionTable'
 import SkeletonLoader from '../../components/SkeletonLoader'
 import { paymentService } from '../../services/payment'
+import { formatCurrency } from '../../utils/formatCurrency'
 
 const UserDashboard = () => {
   const [loading, setLoading] = useState(true)
@@ -53,6 +54,7 @@ const UserDashboard = () => {
           change={stats?.spentChange}
           riskLevel="Low"
           icon={CreditCard}
+          formatValue={(amount) => formatCurrency(Number(amount || 0))}
         />
         <RiskCard
           title="Transactions"
@@ -63,7 +65,7 @@ const UserDashboard = () => {
         />
         <RiskCard
           title="Average Risk Score"
-          value={stats?.avgRiskScore}
+          value={Number(stats?.avgRiskScore || 0).toFixed(2)}
           riskLevel={stats?.avgRiskScore > 40 ? 'Medium' : 'Low'}
           icon={Shield}
           filterType="risk"
@@ -74,6 +76,7 @@ const UserDashboard = () => {
           change={stats?.monthlyChange}
           riskLevel="Low"
           icon={TrendingUp}
+          formatValue={(amount) => formatCurrency(Number(amount || 0))}
         />
       </div>
 

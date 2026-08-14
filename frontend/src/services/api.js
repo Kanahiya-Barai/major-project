@@ -15,7 +15,19 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error?.response?.data || error),
+  (error) => {
+    const payload = error?.response?.data
+    if (Array.isArray(payload?.detail)) {
+      return Promise.reject({
+        ...payload,
+        detail: payload.detail
+          .map((item) => item?.msg)
+          .filter(Boolean)
+          .join(', '),
+      })
+    }
+    return Promise.reject(payload || error)
+  },
 )
 
 export default api

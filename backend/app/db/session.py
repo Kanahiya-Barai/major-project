@@ -1,10 +1,12 @@
 from collections.abc import Generator
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy import text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DATABASE_URL = "sqlite:///./app/db/fraud.db"
+DB_PATH = Path(__file__).resolve().parent / "fraud.db"
+DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
 
 
 class Base(DeclarativeBase):

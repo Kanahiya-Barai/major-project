@@ -1,12 +1,40 @@
 import api from './api'
 
 export const paymentService = {
-  async createPayment({ amount, receiverName, receiverAccount, failedAttempts = 0 }) {
+  async createPayment({
+    amount,
+    receiverName,
+    receiverAccount,
+    failedAttempts = 0,
+    transactionFrequency = 1,
+    deviceChange = false,
+    locationChange = false,
+    hourOfDay,
+  }) {
     const { data } = await api.post('/payment/create', {
       amount,
       receiver_name: receiverName,
       receiver_account: receiverAccount,
       failed_attempts: failedAttempts,
+      transaction_frequency: transactionFrequency,
+      device_change: deviceChange,
+      location_change: locationChange,
+      hour_of_day: hourOfDay,
+    })
+    return data
+  },
+
+  async sendOtp({ transactionId }) {
+    const { data } = await api.post('/payment/otp/send', {
+      transaction_id: transactionId,
+    })
+    return data
+  },
+
+  async verifyOtp({ transactionId, otpCode }) {
+    const { data } = await api.post('/payment/otp/verify', {
+      transaction_id: transactionId,
+      otp_code: otpCode,
     })
     return data
   },

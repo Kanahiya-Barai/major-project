@@ -2,9 +2,12 @@ import { TrendingUp, TrendingDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { riskColor } from '../utils/riskColor'
 
-const RiskCard = ({ title, value, change, riskLevel, icon: Icon, filterType }) => {
+const RiskCard = ({ title, value, change, riskLevel, icon: Icon, filterType, formatValue }) => {
   const colorClasses = riskColor(riskLevel)
   const navigate = useNavigate()
+  const normalizedChange = Number(change)
+  const showChange = Number.isFinite(normalizedChange) && normalizedChange !== 0
+  const displayValue = formatValue ? formatValue(value) : value
 
   const handleClick = () => {
     if (filterType) {
@@ -26,17 +29,17 @@ const RiskCard = ({ title, value, change, riskLevel, icon: Icon, filterType }) =
           <Icon className={`h-5 w-5 ${colorClasses.text}`} />
         </div>
       </div>
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {change && (
-            <p className={`text-sm flex items-center gap-1 mt-1 ${change > 0 ? 'text-success' : 'text-danger'}`}>
-              {change > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {Math.abs(change)}%
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-2xl font-bold leading-tight text-gray-900">{displayValue}</p>
+          {showChange && (
+            <p className={`mt-1 flex items-center gap-1 text-sm ${normalizedChange > 0 ? 'text-success' : 'text-danger'}`}>
+              {normalizedChange > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {Math.abs(normalizedChange)}%
             </p>
           )}
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-medium ${colorClasses.bg} ${colorClasses.text}`}>
+        <div className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium ${colorClasses.bg} ${colorClasses.text}`}>
           {riskLevel}
         </div>
       </div>

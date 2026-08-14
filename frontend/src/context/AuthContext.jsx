@@ -48,6 +48,13 @@ export const AuthProvider = ({ children }) => {
     return nextUser
   }
 
+  const loginWithGoogle = async (credential) => {
+    const { user: nextUser, token } = await authService.loginWithGoogle(credential)
+    localStorage.setItem('token', token)
+    setUser(nextUser)
+    return nextUser
+  }
+
   const continueAsDemo = (role = 'user') => {
     const normalizedRole = role === 'admin' ? 'admin' : 'user'
     const demoUser = demoUsers[normalizedRole]
@@ -57,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, continueAsDemo }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, loginWithGoogle, continueAsDemo }}>
       {children}
     </AuthContext.Provider>
   )
