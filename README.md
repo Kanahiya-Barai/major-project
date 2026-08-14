@@ -1,6 +1,35 @@
 # AI Fraud Detection System
 
-An intelligent fraud detection system that uses machine learning to identify potentially fraudulent transactions in real-time.
+A modern, full-stack fraud detection application with a Stripe-like dark theme UI, Firebase authentication, and real-time fraud analysis using machine learning.
+
+## System Overview
+
+This project implements an intelligent fraud detection system that uses a RandomForestClassifier machine learning model to identify potentially fraudulent transactions in real-time. It features a complete dashboard for monitoring transactions, viewing statistics, and managing fraud alerts.
+
+## Architecture
+
+### Frontend (React 18.2)
+- Modern dark-themed UI (Stripe-style design)
+- Firebase Authentication (Sign In/Sign Up)
+- Protected Dashboard with user authentication
+- Real-time transaction monitoring
+- Interactive charts (Line, Bar, Pie) using Recharts
+- Responsive design (Mobile, Tablet, Desktop)
+- Lucide icons for modern UI elements
+
+### Backend (Flask 2.3)
+- RESTful API endpoints
+- CORS enabled for frontend communication
+- Transaction management and request validation
+- Fraud detection integration
+
+### Machine Learning
+- **Model**: RandomForestClassifier
+- **Features**: Transaction amount, merchant info, category, location, temporal patterns
+
+### Database
+- **Firebase Firestore**: User data and authentication
+- **SQLite**: Transaction history and fraud alerts (optional local storage)
 
 ## Project Structure
 
@@ -34,123 +63,95 @@ ai-fraud-detection-system/
 ├── models/                  # Trained model files
 │   └── fraud_model.pkl      # Serialized ML model
 │
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
+└── requirements.txt         # Python dependencies
 ```
 
-## Features
-
-- **Real-time Fraud Detection**: Analyzes transactions in real-time using machine learning
-- **Risk Scoring**: Calculates comprehensive risk scores based on multiple factors
-- **Transaction Management**: Store and retrieve transaction history
-- **Dashboard**: View transaction data and fraud alerts
-- **API Integration**: RESTful API for seamless integration
-
-## Installation
+## Setup Instructions
 
 ### Prerequisites
 - Python 3.8+
 - Node.js 14+
-- pip (Python package manager)
-- npm (Node package manager)
 
-### Backend Setup
+### 1. Backend Setup
 
-1. Install Python dependencies:
+1. Activate your virtual environment:
+```powershell
+cd ai-fraud-detection-system
+.venv\Scripts\Activate.ps1
+```
+
+2. Install dependencies (if not already installed):
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Initialize the database:
-```bash
-python database/db.py
+3. Configure Environment Variables:
+Create `.env` in the root folder:
 ```
-
-3. Train the ML model:
-```bash
-python ml_model/train_model.py
+FLASK_ENV=development
+FLASK_DEBUG=1
+REACT_APP_API_URL=http://localhost:5000
+API_PORT=5000
 ```
 
 4. Start the backend server:
 ```bash
-python backend/server.py
+python -m backend.server
 ```
-
 The backend will run on `http://localhost:5000`
 
-### Frontend Setup
+### 2. Frontend Setup
 
-1. Install dependencies:
+1. Navigate to frontend directory and install dependencies:
 ```bash
 cd frontend
 npm install
 ```
 
-2. Create `.env` file:
+2. Configure Environment Variables:
+Create `.env` in the `frontend` directory:
 ```
 REACT_APP_API_URL=http://localhost:5000
+PORT=3000
 ```
 
-3. Start the development server:
+3. Setup Firebase:
+Create a Firebase project, enable Email/Password authentication, and add your Firebase credentials to `frontend/.env`.
+
+4. Start the development server:
 ```bash
 npm start
 ```
-
 The frontend will run on `http://localhost:3000`
 
 ## API Endpoints
+
+### Authentication (Firebase)
+- `/signup` - Sign Up
+- `/signin` - Sign In
 
 ### Transaction Management
 - `POST /api/transactions` - Submit a new transaction
 - `GET /api/transactions` - Retrieve all transactions
 - `POST /api/check-fraud` - Check fraud risk for a transaction
-
-### Health Check
 - `GET /health` - Health check endpoint
 
-## Usage
+## ML Model Training
 
-1. Open the application in your browser at `http://localhost:3000`
-2. Submit transactions using the Transaction Form
-3. View transaction history and fraud alerts in the Dashboard
-4. Monitor risk scores and fraud predictions
+To train the machine learning model:
+1. Prepare your transaction dataset in CSV format.
+2. Place the file at `ml_model/data/transactions.csv`.
+3. Run the training script: `python ml_model/train_model.py`
 
-## ML Model
+## Features
 
-The system uses a Random Forest Classifier for fraud detection. The model is trained on historical transaction data and provides:
-- Fraud probability
-- Risk score
-- Confidence level
-
-### Model Features
-- Transaction amount
-- Merchant information
-- Transaction category
-- Geographic location
-- Temporal patterns
-
-## Security Considerations
-
-- Use HTTPS in production
-- Implement authentication and authorization
-- Validate and sanitize all inputs
-- Use environment variables for sensitive data
-- Regularly update dependencies
-- Implement rate limiting
-
-## Future Enhancements
-
-- Real-time model retraining
-- Advanced anomaly detection
-- Integration with external fraud databases
-- Multi-factor authentication
-- Advanced reporting and analytics
-- Webhook notifications
-
-## License
-
-MIT License
+- **Dark Theme UI**: Navy/Blue color scheme with a Stripe-inspired dashboard design.
+- **Interactive Dashboard**: Transaction statistics, trend charts, fraud status distribution.
+- **Authentication**: Firebase integration with protected dashboard routes.
+- **Risk Assessment**: Real-time evaluation of transaction risk using machine learning.
 
 ## Support
 
 For issues and questions, please open an issue in the repository.
+
+# MAJOR-_PROJECT
