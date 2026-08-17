@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_admin, get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.integrations.email_client import EmailNotConfiguredError, send_email
@@ -83,6 +83,8 @@ def _serialize_transaction(transaction: Transaction) -> dict:
         "id": transaction.id,
         "userId": transaction.user_id,
         "amount": transaction.amount,
+        "receiverName": transaction.receiver_name,
+        "receiverAccount": transaction.receiver_account,
         "status": transaction.status,
         "riskScore": transaction.risk_score,
         "riskLevel": transaction.risk_level,
@@ -225,6 +227,8 @@ def create_payment(
         id=transaction_id,
         user_id=current_user.id,
         amount=float(payload.amount),
+        receiver_name=payload.receiver_name,
+        receiver_account=payload.receiver_account,
         status=status,
         risk_score=risk_percent,
         risk_level=risk.level,
@@ -468,6 +472,92 @@ def get_model_metrics() -> dict:
     with MODEL_METRICS_PATH.open("r", encoding="utf-8") as handle:
         metrics = json.load(handle)
     return {"available": True, "metrics": metrics}
+
+
+@router.get("/fraud-ring")
+def get_fraud_ring(
+    _admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Builds a user-to-receiver transaction graph and flags receiver accounts
+    that are shared across multiple senders (a classic money-mule / collusion
+    signal), weighted by how risky those shared transactions were.
+    """
+    transactions = db.scalars(
+        select(Transaction).where(Transaction.receiver_account.is_not(None))
+    ).all()
+
+    if not transactions:
+        return {"nodes": [], "edges": [], "suspiciousReceivers": 0}
+
+    user_ids = {tx.user_id for tx in transactions}
+    users_by_id = {
+        user.id: user for user in db.scalars(select(User).where(User.id.in_(user_ids))).all()
+    }
+
+    senders_by_receiver: dict[str, set[int]] = defaultdict(set)
+    receiver_names: dict[str, str] = {}
+    for tx in transactions:
+        senders_by_receiver[tx.receiver_account].add(tx.user_id)
+        if tx.receiver_name:
+            receiver_names[tx.receiver_account] = tx.receiver_name
+
+    nodes: dict[str, dict] = {}
+    edges: list[dict] = []
+    suspicious_receivers = 0
+
+    for tx in transactions:
+        user_node_id = f"user:{tx.user_id}"
+        receiver_node_id = f"receiver:{tx.receiver_account}"
+        sender_count = len(senders_by_receiver[tx.receiver_account])
+        is_shared = sender_count >= 2
+
+        if user_node_id not in nodes:
+            user = users_by_id.get(tx.user_id)
+            nodes[user_node_id] = {
+                "id": user_node_id,
+                "type": "user",
+                "label": user.email if user else f"user #{tx.user_id}",
+                "maxRiskScore": 0.0,
+                "flagged": False,
+            }
+        if receiver_node_id not in nodes:
+            if is_shared:
+                suspicious_receivers += 1
+            nodes[receiver_node_id] = {
+                "id": receiver_node_id,
+                "type": "receiver",
+                "label": receiver_names.get(tx.receiver_account, tx.receiver_account),
+                "account": tx.receiver_account,
+                "senderCount": sender_count,
+                "maxRiskScore": 0.0,
+                "flagged": is_shared,
+            }
+
+        risk_score = float(tx.risk_score or 0)
+        for node_id in (user_node_id, receiver_node_id):
+            if risk_score > nodes[node_id]["maxRiskScore"]:
+                nodes[node_id]["maxRiskScore"] = risk_score
+
+        edges.append(
+            {
+                "source": user_node_id,
+                "target": receiver_node_id,
+                "transactionId": tx.id,
+                "amount": tx.amount,
+                "riskScore": risk_score,
+                "riskLevel": tx.risk_level,
+                "decision": tx.decision,
+                "date": tx.date,
+                "shared": is_shared,
+            }
+        )
+
+    return {
+        "nodes": list(nodes.values()),
+        "edges": edges,
+        "suspiciousReceivers": suspicious_receivers,
+    }
 
 
 @router.get("/stats")

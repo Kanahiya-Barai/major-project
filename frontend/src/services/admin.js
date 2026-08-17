@@ -53,5 +53,10 @@ export const adminService = {
   async getUsers() {
     const { data } = await api.get('/users')
     return data
+  },
+
+  async getFraudRing() {
+    const { data } = await api.get('/payment/fraud-ring')
+    return data
   }
 }
