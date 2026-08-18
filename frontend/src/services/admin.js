@@ -36,34 +36,27 @@ export const adminService = {
   },
 
   async getAlerts() {
-    const { data: transactions } = await api.get('/payment/transactions')
-    const alerts = transactions
-      .filter((tx) => Number(tx.riskScore || 0) > 40 || tx.status === 'failed')
-      .slice(0, 20)
-      .map((tx, index) => {
-        const score = Number(tx.riskScore || 0)
-        const severity = score > 70 || tx.status === 'failed' ? 'high' : score > 55 ? 'medium' : 'low'
-        const message =
-          tx.status === 'failed'
-            ? 'Transaction failed due to fraud risk'
-            : score > 70
-              ? 'High risk score transaction detected'
-              : 'Unusual transaction risk detected'
+    const { data } = await api.get('/payment/alerts')
+    return data
+  },
 
-        return {
-          id: `alert_${index}_${tx.id}`,
-          transactionId: tx.id,
-          message,
-          severity,
-          timestamp: new Date().toISOString(),
-        }
-      })
+  async updateAlert(alertId, payload) {
+    const { data } = await api.post(`/payment/alerts/${alertId}`, payload)
+    return data
+  },
 
-    return alerts
+  async getModelMetrics() {
+    const { data } = await api.get('/payment/model-metrics')
+    return data
   },
 
   async getUsers() {
     const { data } = await api.get('/users')
+    return data
+  },
+
+  async getFraudRing() {
+    const { data } = await api.get('/payment/fraud-ring')
     return data
   }
 }

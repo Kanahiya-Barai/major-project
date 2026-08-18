@@ -5,9 +5,10 @@ import {
   PieChart, 
   User, 
   Users, 
-  AlertTriangle, 
+  AlertTriangle,
   FileText,
-  Settings
+  Settings,
+  Network
 } from 'lucide-react'
 
 export const userNavItems = [
@@ -22,6 +23,7 @@ export const adminNavItems = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Transactions', path: '/admin/transactions', icon: History },
   { label: 'Alerts', path: '/admin/alerts', icon: AlertTriangle },
+  { label: 'Fraud Ring', path: '/admin/fraud-ring', icon: Network },
   { label: 'Users', path: '/admin/users', icon: Users },
   { label: 'Reports', path: '/admin/reports', icon: FileText }
 ]

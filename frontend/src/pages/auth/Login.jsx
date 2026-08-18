@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../../context/AuthContext'
+import GoogleSignInButton from '../../components/GoogleSignInButton'
 import { 
   ArrowRight, 
   CheckCircle2, 
@@ -25,7 +26,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const { login, continueAsDemo } = useContext(AuthContext)
+  const { login, loginWithGoogle, continueAsDemo } = useContext(AuthContext)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -45,6 +46,19 @@ const Login = () => {
   const handleDemoAccess = (role) => {
     const demoUser = continueAsDemo(role)
     navigate(demoUser.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')
+  }
+
+  const handleGoogleSignIn = async (credential) => {
+    setError('')
+    setLoading(true)
+    try {
+      const user = await loginWithGoogle(credential)
+      navigate(user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')
+    } catch (err) {
+      setError(err?.detail || err?.message || 'Unable to sign in with Google right now.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -208,6 +222,7 @@ const Login = () => {
                         className="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 hover:border-slate-300"
                         placeholder="Enter your password"
                         required
+                        minLength={8}
                       />
                       <button
                         type="button"
@@ -266,6 +281,14 @@ const Login = () => {
                   </button>
                 </form>
 
+                <div className="mt-6">
+                  <GoogleSignInButton
+                    onCredential={handleGoogleSignIn}
+                    onError={(err) => setError(err?.message || 'Unable to load Google sign-in.')}
+                    disabled={loading}
+                  />
+                </div>
+
                 {/* Demo access section */}
                 <div className="mt-8">
                   <div className="relative">
@@ -323,12 +346,12 @@ const Login = () => {
                         <div className="space-y-1">
                           <p className="font-medium text-slate-700">User Account</p>
                           <p className="font-mono text-slate-600">user@example.com</p>
-                          <p className="font-mono text-slate-600">password</p>
+                          <p className="font-mono text-slate-600">Password123</p>
                         </div>
                         <div className="space-y-1">
                           <p className="font-medium text-slate-700">Admin Account</p>
                           <p className="font-mono text-slate-600">admin@example.com</p>
-                          <p className="font-mono text-slate-600">password</p>
+                          <p className="font-mono text-slate-600">Password123</p>
                         </div>
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../../context/AuthContext'
+import GoogleSignInButton from '../../components/GoogleSignInButton'
 import { 
   User, 
   Mail, 
@@ -23,7 +24,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
-  const { register, continueAsDemo } = useContext(AuthContext)
+  const { register, loginWithGoogle, continueAsDemo } = useContext(AuthContext)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -47,6 +48,19 @@ const Register = () => {
   const handleDemoAccess = (role) => {
     const demoUser = continueAsDemo(role)
     navigate(demoUser.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')
+  }
+
+  const handleGoogleSignIn = async (credential) => {
+    setError('')
+    setLoading(true)
+    try {
+      const user = await loginWithGoogle(credential)
+      navigate(user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')
+    } catch (err) {
+      setError(err?.detail || err?.message || 'Unable to continue with Google right now.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Password strength calculation
@@ -234,7 +248,7 @@ const Register = () => {
                         className="w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 hover:border-slate-300"
                         placeholder="Create a strong password"
                         required
-                        minLength={6}
+                        minLength={8}
                       />
                       <button
                         type="button"
@@ -320,6 +334,15 @@ const Register = () => {
                     </span>
                   </button>
                 </form>
+
+                <div className="mt-6">
+                  <GoogleSignInButton
+                    onCredential={handleGoogleSignIn}
+                    onError={(err) => setError(err?.message || 'Unable to load Google sign-in.')}
+                    text="signup_with"
+                    disabled={loading}
+                  />
+                </div>
 
                 {/* Demo access section */}
                 <div className="mt-8">

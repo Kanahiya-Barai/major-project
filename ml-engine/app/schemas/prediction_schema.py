@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,3 +15,6 @@ class PredictionRequest(BaseModel):
 class PredictionResponse(BaseModel):
     fraud_probability: float
     anomaly_score: float
+    model_breakdown: dict[str, float] = Field(default_factory=dict)
+    anomaly_breakdown: dict[str, float] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)

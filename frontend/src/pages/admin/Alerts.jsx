@@ -6,6 +6,9 @@ import SkeletonLoader from '../../components/SkeletonLoader'
 const Alerts = () => {
   const [loading, setLoading] = useState(true)
   const [alerts, setAlerts] = useState([])
+  const [selectedAlert, setSelectedAlert] = useState(null)
+  const [assignee, setAssignee] = useState('')
+  const [note, setNote] = useState('')
 
   useEffect(() => {
     adminService.getAlerts()
@@ -13,8 +16,15 @@ const Alerts = () => {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleAction = (action, alertId) => {
-    alert(`${action} alert ${alertId}`)
+  const handleAction = async (status, alertId) => {
+    const updated = await adminService.updateAlert(alertId, {
+      status,
+      assignee: assignee || selectedAlert?.assignee || null,
+      note: note || null,
+    })
+    setAlerts((current) => current.map((alert) => (alert.id === alertId ? updated : alert)))
+    setSelectedAlert(updated)
+    setNote('')
   }
 
   const severityStyles = {
@@ -59,26 +69,32 @@ const Alerts = () => {
                     <p className="text-sm text-gray-600 mb-2">
                       Transaction ID: <span className="font-mono">{alert.transactionId}</span>
                     </p>
+                    <p className="text-sm text-gray-600 mb-1">Status: {alert.status}</p>
+                    {alert.assignee ? <p className="text-sm text-gray-600 mb-1">Assignee: {alert.assignee}</p> : null}
                     <p className="text-xs text-gray-500">{new Date(alert.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleAction('View', alert.id)}
+                    onClick={() => {
+                      setSelectedAlert(alert)
+                      setAssignee(alert.assignee || '')
+                      setNote('')
+                    }}
                     className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                     title="View details"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => handleAction('Resolve', alert.id)}
+                    onClick={() => handleAction('resolved', alert.id)}
                     className="p-2 text-success hover:bg-success/10 rounded-lg transition"
                     title="Mark as resolved"
                   >
                     <CheckCircle className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => handleAction('Dismiss', alert.id)}
+                    onClick={() => handleAction('dismissed', alert.id)}
                     className="p-2 text-danger hover:bg-danger/10 rounded-lg transition"
                     title="Dismiss"
                   >
@@ -90,6 +106,75 @@ const Alerts = () => {
           ))}
         </div>
       )}
+
+      {selectedAlert ? (
+        <div className="bg-surface rounded-2xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Investigation Panel</h2>
+              <p className="text-sm text-gray-600">Alert ID: {selectedAlert.id}</p>
+            </div>
+            <button onClick={() => setSelectedAlert(null)} className="text-sm text-gray-500 hover:text-gray-700">
+              Close
+            </button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="font-medium text-gray-900 mb-2">Features</p>
+              <pre className="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(selectedAlert.features, null, 2)}</pre>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="font-medium text-gray-900 mb-2">Explanation</p>
+              <pre className="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(selectedAlert.explanation, null, 2)}</pre>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <input
+              value={assignee}
+              onChange={(event) => setAssignee(event.target.value)}
+              placeholder="Assign to analyst"
+              className="rounded-xl border border-gray-200 px-4 py-3"
+            />
+            <input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Add investigation note"
+              className="rounded-xl border border-gray-200 px-4 py-3"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleAction('investigating', selectedAlert.id)}
+              className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white"
+            >
+              Mark Investigating
+            </button>
+            <button
+              onClick={() => handleAction('resolved', selectedAlert.id)}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Resolve
+            </button>
+          </div>
+
+          {selectedAlert.notes?.length ? (
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="font-medium text-gray-900 mb-3">Notes</p>
+              <div className="space-y-2">
+                {selectedAlert.notes.map((entry) => (
+                  <div key={entry.createdAt} className="text-sm text-gray-700">
+                    <p>{entry.message}</p>
+                    <p className="text-xs text-gray-500">{new Date(entry.createdAt).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

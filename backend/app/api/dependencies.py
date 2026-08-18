@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.user import User
-from app.services.auth_service import get_user_by_token
+from app.services.auth_service import get_current_user as resolve_current_user
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -18,7 +18,7 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
         )
-    return get_user_by_token(db, credentials.credentials)
+    return resolve_current_user(db, credentials)
 
 
 def get_current_admin(user: User = Depends(get_current_user)) -> User:
